@@ -1,0 +1,11 @@
+# 一个参考项目
+emacc 
+# 忽略执行文件、中间文件
+*.s
+*.log
+/tmp*
+a.out
+**/build/
+# 忽略编译器编辑器文件
+.vscode/
+.cache/
