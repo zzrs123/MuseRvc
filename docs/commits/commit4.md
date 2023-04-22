@@ -303,7 +303,7 @@ fn main() {
                     p = iter.next(); // 跳过 - 号
                     println!("  addi a0, a0, -{}", get_token_number(Some(p.unwrap())));
                 }
-        
+      
             }
             TokenKind::TkNum    => {
                 error!("unexpected num!")
@@ -317,7 +317,6 @@ fn main() {
 ```
 
 这方面非功能性的错误处理代码写的很难受，再看看rustc源码和各方面资料来进行优化吧，不能卡在这里，继续向后进行吧。
-
 
 ## 4. 修改优化
 
@@ -355,10 +354,8 @@ struct Token<'a> {
 }
 static mut CURRENT_INPUT : Option<String> = None;
 /*=====================================================================
-    error 宏
-    在这个宏中，用 $fmt 作为必需的参数。
-    然后使用 $arg 变量来捕获任意数量的额外参数。
-    使用 eprint! 和 \n 字符将消息输出到 stderr 流中
+    verror_at
+    指示错误位置，输出报错消息
  ======================================================================*/ 
 
 fn verror_at(loc:usize, err_str:&str) -> (){
