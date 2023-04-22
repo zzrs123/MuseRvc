@@ -9,3 +9,5 @@ a.out
 # 忽略编译器编辑器文件
 .vscode/
 .cache/
+# 忽略我的草稿
+draft

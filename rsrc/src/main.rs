@@ -21,20 +21,71 @@ struct Token<'a> {
     kind: TokenKind,
     value: Option<V<'a>>,
     len: usize,
+    loc: usize,
 }
-
+static mut CURRENT_INPUT : Option<String> = None;
 /*=====================================================================
     error 宏
     在这个宏中，用 $fmt 作为必需的参数。
     然后使用 $arg 变量来捕获任意数量的额外参数。
     使用 eprint! 和 \n 字符将消息输出到 stderr 流中
  ======================================================================*/ 
+
+fn verror_at(loc:usize, err_str:&str) -> (){
+    unsafe{
+        eprintln!("{}", CURRENT_INPUT.as_deref().unwrap()); // 输出源串
+    }
+    // 根据loc找到出错位置，另起一行用^+报错消息输出
+    let padding = " ".repeat(loc);
+    eprint!("{}",padding);
+    eprint!("{}", '^');
+    eprint!("{}\n", err_str);
+}
+
+ /*=====================================================================
+                error 宏
+    尝试了很多方式，最后还是返璞归真复用error!宏
+    在前面的error版本中直接向下增加就可以，但总感觉写的不够好。
+    因为C中使用变参函数，Rust不支持，所以寻求使用宏匹配来解决
+    跟C有点不同，C中区分了两种错误消息宏
+    第一种处理：字符串解析为token过程中的errorAT，
+              这个使用error宏的第一个匹配逻辑就可以达到同样效果
+    第二种处理：解析token流时的错误errorTok，
+              使用输入为token类型的第二个匹配逻辑
+ ======================================================================*/ 
 macro_rules! error {
+    ($tok:ident, $msg:expr) => {
+        verror_at($tok.loc, $msg);
+        exit(1);
+    };
+    // 使用 format! 宏将 $c 的值插入到 $fmt 中，生成新的字符串 message。
+    // 最后，我们将 $i 和 &message 一起传递给 verror_at 函数进行错误处理。
+    ($i:ident, $fmt:expr, $c:expr) =>{{
+        // let str = concat!($fmt, $c:expr) ;
+        let message = format!($fmt, $c);
+        verror_at($i,&message);
+        exit(1);
+    }};
     ($fmt:expr $(, $arg:expr)*) => {{
         eprint!(concat!($fmt, "\n") $(, $arg)*);
         exit(1);
     }};
+
 }
+ /*=====================================================================
+    errorTok 宏
+    将token解析错误的位置标注出来进行输出。
+    这里跟C有点不同，C中区分了两种错误消息宏
+    第一种处理：字符串解析为token过程中的errorAT，这个使用error宏就可以达到同样效果
+    第二种处理：解析token流时的错误errorTok，单独实现了一个输入为tok的一个宏
+ ======================================================================*/ 
+// macro_rules! errorTok{ 
+//     ($tok:ident $arg:expr) => {
+//         verror_at($tok.loc,$arg);
+//         exit(1);
+//     };
+// }
+
 
 /*=====================================================================
     get_token_number
@@ -45,12 +96,14 @@ fn get_token_number(token: Option<&Token>) -> i32 {
 
     if let Some(v)= token{
         if v.kind != TokenKind::TkNum{
-            error!("expected a number not a char|string")
+            // error!("expected a number not a char|string")
+            error!(v,"expected a number instead of a char|string|EOF");
         } else if let Some(V::Int(n)) = v.value{
             return n;
         }
+        error!(v,"expect a number");
     }
-    error!("expect a number");
+    error!("unknown error");
 }
 
 /*======================================================================
@@ -91,7 +144,7 @@ fn tokenize(arg: &mut str) -> Vec<Token> {
                 let token = Token {
                     kind: TokenKind::TkPunct,
                     value: Some(V::Str(str1)),
-                    // loc: &arg[start..i],
+                    loc: i,
                     len: 1, // 操作符长度为1
                     // sss: Some(str1), // 将操作符解析到 sss 字段
                 };
@@ -112,7 +165,7 @@ fn tokenize(arg: &mut str) -> Vec<Token> {
                 let token = Token {
                     kind: TokenKind::TkNum,
                     value: Some(V::Int(numeric.unwrap())),
-                    // loc: &arg[start..end],
+                    loc: i,
                     len: end - start,
                     // sss:None
                 };
@@ -120,15 +173,17 @@ fn tokenize(arg: &mut str) -> Vec<Token> {
                 start = end;
             }
             _ => {
-                error!("Unexpected character '{}'", c);
+                let loc_char: usize = i;
+                error!(loc_char,"Unexpected character '{}'", c);
+                // errorTok!()
             }
         }
     }
     let eof_token = Token {
         kind: TokenKind::TKEof,
         value: None,
-        // loc: &arg[start..],
-        len: arg.len() - start,
+        loc: arg.len(),
+        len: 0,
         // sss:None,
     };
     tokens.push(eof_token);
@@ -151,8 +206,13 @@ fn main() {
     }
   
     // 接下来引入Token解析系统，将数字和运算符处理为token，空格滤除
+    let total_str = args[1].clone();
+    unsafe {
+        CURRENT_INPUT = Some(total_str);
+    }
     let tok = tokenize(args[1].as_mut_str());
-
+    // VerrorAt(1,"tskldjf");
+    
     // let mut iter = tok.chars();//创建了一个字符迭代器
     // let mut p = iter.next();//获取其第一个字符
     let mut iter = tok.iter();// 创建了一个迭代器
@@ -163,11 +223,12 @@ fn main() {
   
     // main段标签
     println!("main:");
-
+    
     // li为addi别名指令，加载一个立即数到寄存器中
     // 这里我们将算式分解为 num (op num) (op num)... 的形式
     // 所以先将第一个 num 传入a0
     let c = p.unwrap();
+    // errorTok!(c "sdfsdf");
     let num = get_token_number(Some(c));
     println!("  li a0, {}", num);
 

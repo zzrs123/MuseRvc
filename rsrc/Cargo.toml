@@ -10,3 +10,4 @@ edition = "2021"
 log = "0.4"
 [profile.release]
 debug = true
+#![feature(c_variadic)]
