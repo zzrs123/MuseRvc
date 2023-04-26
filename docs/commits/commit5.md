@@ -106,5 +106,80 @@ primary = "(" expr ")" | num
 >
 > 总之step4已经到来了是吧，先推送。
 
-
 ### 3.2 第二版实现：
+
+我原本以为会是一个漫长的调试过程，会像操作系统试点课程里那样与指针做搏斗等等。但实际上问题很快就被定位了。这是一个代码逻辑问题（Rust语言本身还是很严谨的），细致来说就是在下面这段代码中：
+
+```rust
+ let temp = arg.char_indices();
+    // arg.char_indices()同时得到索引和字符，对得到的字符用match进行处理
+    for (i, c) in temp {
+        match c {
+            // 处理空白字符
+            c if c.is_whitespace() => {
+                start = i + 1;
+                continue;
+            },
+            // 解析操作符
+            // 特点是长度一定为1
+            // 改用函数识别操作符
+            c if c.is_ascii_punctuation() => {
+                let str1=&arg[start..=i] ;
+                let token = Token {
+                    kind: TokenKind::TkPunct,
+                    value: Some(V::Str(str1)),
+                    loc: i,
+                    len: 1, // 操作符长度为1
+                    // sss: Some(str1), // 将操作符解析到 sss 字段
+                };
+                tokens.push(token);
+                start = i + 1;
+                // continue;
+            },
+            // 解析数字
+            '0'..='9' =>  {
+                let mut end = i;
+                while let Some(c) = arg.chars().nth(end) {
+                    if c.is_digit(10) {
+                        end += 1;
+                    } else {
+                        break;
+                    }
+                }
+                let numeric = arg[start..end].parse::<i32>().ok();
+                let token = Token {
+                    kind: TokenKind::TkNum,
+                    value: Some(V::Int(numeric.unwrap())),
+                    loc: i,
+                    len: end - start,
+                    // sss:None
+                };
+                tokens.push(token);
+                start = end;
+                // i = start;
+                // continue;
+            }
+            _ => {
+                // 处理无法识别的字符
+                let loc_char: usize = i;
+                error!(loc_char,"Unexpected character '{}'", c);
+                // errorTok!()
+            }
+        }
+    }
+```
+
+如果输入42来跑一下，第一次for循环中，numeric就已经读取了42这一连续的数字字符，解析为i32类型后push进入tokens数组，而第二次for循环中，i依然按照既定目标进行，也就是i=1，此时字符'2'进入匹配，匹配到了数字模块，而因为数字模块的start和end都不支持解析字符2了，所以程序就在 `unwrap()`处崩溃了。
+
+解决办法很简单，只需要在 i < start 时进行空转即可，加入以下代码：
+
+```rust
+    for (i, c) in arg.char_indices() {
+        if i < start {
+            continue; //跳过已经匹配的字符
+        }
+```
+
+然后我再对step4中的代码进行整理，将注释和书写都规范了一下，这就是我的step4.1。
+
+![2](pics/commit5-pic/success.png)

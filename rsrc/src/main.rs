@@ -1,9 +1,6 @@
 use std::env;
 use std::process::*;
-// use std::ptr::eq;
-// use std::rc::Rc;
 use std::result::Result;
-// use std::str::FromStr;
 
 /*=====================================================================
                     Token系统
@@ -19,14 +16,19 @@ enum V<'a> {
     Int(i32),
     Str(&'a str),
 }
-
+#[allow(dead_code)]
 struct Token<'a> {
     kind: TokenKind,
     value: Option<V<'a>>,
-    len: usize,
     loc: usize,
+    len: usize,
 }
+/*=====================================================================
+                            错误处理系统
+                    CCURRENT_INPUT存储当前输入语句
+// ====================================================================== */
 static mut CURRENT_INPUT : Option<String> = None;
+
 /*=====================================================================
                         verror_at
                     指示错误位置，输出报错消息
@@ -73,24 +75,11 @@ macro_rules! error {
     }};
 
 }
- /*=====================================================================
-    errorTok 宏
-    将token解析错误的位置标注出来进行输出。
-    这里跟C有点不同，C中区分了两种错误消息宏
-    第一种处理：字符串解析为token过程中的errorAT，这个使用error宏就可以达到同样效果
-    第二种处理：解析token流时的错误errorTok，单独实现了一个输入为tok的一个宏
- ======================================================================*/ 
-// macro_rules! errorTok{ 
-//     ($tok:ident $arg:expr) => {
-//         verror_at($tok.loc,$arg);
-//         exit(1);
-//     };
-// }
 
 
 /*=====================================================================
     get_token_number
-    返回 TKNUM 的值
+    返回 TKNUM 的值 （step4中因为其他模块的功能拓展而废弃）
  ======================================================================*/ 
 
 // fn get_token_number(token: Option<&Token>) -> i32 {
@@ -125,6 +114,7 @@ fn equal(token: &Token, s: &str) -> bool {
 
 /*======================================================================
                     skip: 跳过指定字符、字符串
+                （step4中因为其他模块的功能拓展而废弃）
 ====================================================================== */
 // fn skip(rest: &mut Token, ex_str: &str,) {
 //     if !equal(rest, ex_str) {
@@ -145,10 +135,14 @@ fn tokenize(arg: &mut str) -> Vec<Token> {
     let mut start = 0;
     // arg.char_indices()同时得到索引和字符，对得到的字符用match进行处理
     for (i, c) in arg.char_indices() {
+        if i < start {
+            continue; //跳过已经匹配的字符
+        }
         match c {
             // 处理空白字符
             c if c.is_whitespace() => {
                 start = i + 1;
+                continue;
             },
             // 解析操作符
             // 特点是长度一定为1
@@ -164,6 +158,7 @@ fn tokenize(arg: &mut str) -> Vec<Token> {
                 };
                 tokens.push(token);
                 start = i + 1;
+                // continue;
             },
             // 解析数字
             '0'..='9' =>  {
@@ -185,6 +180,8 @@ fn tokenize(arg: &mut str) -> Vec<Token> {
                 };
                 tokens.push(token);
                 start = end;
+                // i = start;
+                // continue;
             }
             _ => {
                 // 处理无法识别的字符
@@ -219,7 +216,7 @@ enum NodeKind {
     NdNum, // 整型
 }
   
-  // AST中二叉树节点
+// AST中二叉树节点
 struct Node {
     kind: NodeKind, // 节点种类
     lhs: Option<Box<Node>>, // 左部，left-hand side
@@ -356,8 +353,10 @@ fn paser(tokens: &Vec<Token>) -> Result<Box<Node>, String> {
 }
 
 
-
-
+/*====================================================================
+                        代码生成模块 
+                         栈管理函数
+ ====================================================================*/
 
 // 记录栈深度
 static mut DEPTH: i32 = 0;
@@ -383,9 +382,6 @@ fn pop(reg: &str) {
     }
 }
 
-// 生成表达式
-
-
 /*======================================================================
                         GenAsm: 代码生成主干函数
                 接收目标字符串，接入Token处理为RISC-V汇编
@@ -405,26 +401,19 @@ fn gen_asm(nd:Box<Node> ){
     gen_asm(nd.lhs.unwrap());
     // 将结果弹栈到a1
     pop("a1");
-
     // 生成各个二叉树节点
     match nd.kind {
-        NodeKind::NdAdd => { // + a0=a0+a1
-            println!("   add a0, a0, a1");
-        },
-        NodeKind::NdSub => { // - a0=a0-a1
-            println!("   sub a0, a0, a1");
-        },
-        NodeKind::NdMul => { // * a0=a0*a1
-            println!("   mul a0, a0, a1");
-        },
-        NodeKind::NdDiv => { // / a0=a0/a1
-            println!("   div a0, a0, a1");
-        },
-        _ => {
-            error!("invalid expression");
-        }
+        // + a0=a0+a1
+        NodeKind::NdAdd => { println!("   add a0, a0, a1");},
+        // - a0=a0-a1
+        NodeKind::NdSub => { println!("   sub a0, a0, a1");},
+        // * a0=a0*a1
+        NodeKind::NdMul => { println!("   mul a0, a0, a1");},
+        // / a0=a0/a1
+        NodeKind::NdDiv => { println!("   div a0, a0, a1");},
+        
+        _ => {error!("invalid expression");}
     }
-
 }
 
 
