@@ -1,1 +1,8 @@
-/target
+*
+!src/
+!.cargo/
+!Cargo.lock
+!Cargo.toml
+!readme.md
+!*.sh
+
