@@ -556,14 +556,14 @@ fn gen_asm(nd:Box<Node> ){
                     println!("  slt a0, a1, a0");
                     println!("  xori a0, a0, 1");
                     return;
-                }     
-                   
+                }
+                
                 _ => {
                     error!("invalid expression");
                 }
             }
         }
-    }
+    }    
 }
 
 
