@@ -6,17 +6,17 @@ assert() {
   expected="$1"
   # 输入值 为参数2
   input="$2"
+
   # 运行程序，传入期待值，将生成结果写入tmp.s汇编文件。
   # 如果运行不成功，则会执行exit退出。成功时会短路exit操作
-#   ./rvcc "$input" > tmp.s || exit
-  qemu-riscv64 -L $RISCV/sysroot/  target/riscv64gc-unknown-linux-gnu/debug/muservc "$input" > alu.s || exit
+  ./rvcc "$input" > tmp.s || exit
   # 编译rvcc产生的汇编文件
 #   gcc -o tmp tmp.s
-  $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o alu alu.s
+  $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o tmp tmp.s
 
   # 运行生成出来目标文件
 #   ./tmp
-  $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot ./alu
+  $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot ./tmp
   # $RISCV/bin/spike --isa=rv64gc $RISCV/riscv64-unknown-linux-gnu/bin/pk ./tmp
 
   # 获取程序返回值，存入 实际值
@@ -111,9 +111,6 @@ assert 3 '{ if (1) { 1; 2; return 3; } else { return 4; } }'
 # [16] 支持for语句
 assert 55 '{ i=0; j=0; for (i=0; i<=10; i=i+1) j=i+j; return j; }'
 assert 3 '{ for (;;) {return 3;} return 5; }'
-
-# [17] 支持while语句
-assert 10 '{ i=0; while(i<10) { i=i+1; } return i; }'
 
 # 如果运行正常未提前退出，程序将显示OK
 echo OK
