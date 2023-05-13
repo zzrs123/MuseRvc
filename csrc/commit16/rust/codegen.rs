@@ -251,7 +251,6 @@ fn gen_stmt(node:Box<Node>) {
                 n = node.next;
             }
         }
-        // 生成IF语句
         NodeKind::NdIf => {
             let c = count();
             gen_expr(node.cond.unwrap());

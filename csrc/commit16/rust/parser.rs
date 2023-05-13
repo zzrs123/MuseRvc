@@ -128,7 +128,6 @@ fn stmt(tokens: &Vec<Token>, pos: &mut usize, func: &mut Function) -> Result<Box
                     error!(tmp,"Expected '(' after for");
                 }
                 *pos += 1;
-                // 注意这里调用stmt，因为可能存在for(;;)的情况，而空语句我的设定是在stmt中处理的
                 nd.init = Some(stmt(tokens, pos, func)?);
                 if !equal(&tokens[*pos], ";") {
                     nd.cond = Some(expr(tokens, pos, func)?);
