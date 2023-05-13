@@ -15,6 +15,7 @@ static mut DEPTH: i32 = 0;
 // 当前栈指针的地址就是sp，将a0的值压入栈
 // 不使用寄存器存储的原因是因为需要存储的值的数量是变化的。
 fn push() {
+    println!("   # 压栈,将a0的值存入栈顶");
     println!("   addi sp, sp, -8");
     println!("   sd a0, 0(sp)");
     unsafe {
@@ -24,6 +25,7 @@ fn push() {
 
 // 弹栈，将sp指向的地址的值，弹出到a1
 fn pop(reg: &str) {
+    println!("   # 弹栈，将栈顶的值存入{}", reg);
     println!("   ld {}, 0(sp)", reg);
     println!("   addi sp, sp, 8");
     unsafe {
@@ -121,6 +123,7 @@ fn gen_addr(node: Box<Node>) {
             // 结合CodeGen的栈布局进行理解
             // let offset = (name - b'a' + 1) as i32 * 8;
             // println!("{}",node.clone().var.unwrap().offset);
+            println!("   # 获取变量{}的栈内地址为{}(fp)", node.clone().var.unwrap().name, node.clone().var.unwrap().offset);
             println!("   addi a0, fp, {}", node.var.unwrap().offset);
         }
         _ => {
@@ -136,14 +139,17 @@ fn gen_addr(node: Box<Node>) {
 fn gen_expr(node: Box<Node>) {
     match node.kind {
         NodeKind::NdNum => {
+            println!("   # 将{}加载到a0中", node.clone().val.unwrap());
             println!("   li a0, {}", node.val.unwrap());
         }
         NodeKind::NdNeg => {
             gen_expr(node.lhs.unwrap());
+            println!("   # 对a0值进行取反");
             println!("   neg a0, a0");
         }
         NodeKind::NdVar => {
             gen_addr(node);
+            println!("   # 读取a0中存放的地址,得到的值存入a0");
             println!("   ld a0, 0(a0)");
         }
         NodeKind::NdAssign => {
@@ -153,6 +159,7 @@ fn gen_expr(node: Box<Node>) {
             // 右部是右值，为表达式的值
             gen_expr(node.rhs.unwrap());
             pop("a1");
+            println!("   # 将a0的值,写入到a1中存放的地址");
             println!("   sd a0, 0(a1)");
         }
         _ => {
@@ -163,26 +170,31 @@ fn gen_expr(node: Box<Node>) {
             match node.kind {
                 // + a0=a0+a1
                 NodeKind::NdAdd => { 
+                    println!("   # a0+a1,结果写入a0");
                     println!("   add a0, a0, a1");
                     return;
                 },
                 // - a0=a0-a1
                 NodeKind::NdSub => { 
+                    println!("   # a0-a1,结果写入a0");
                     println!("   sub a0, a0, a1");
                     return;
                 },
                 // * a0=a0*a1
                 NodeKind::NdMul => { 
+                    println!("   # a0*a1,结果写入a0");
                     println!("   mul a0, a0, a1");
                     return;
                 },
                 // / a0=a0/a1
                 NodeKind::NdDiv => {
+                    println!("   # a0/a1,结果写入a0");
                     println!("   div a0, a0, a1");
                     return;
                 },
                 NodeKind::NdEq | NodeKind::NdNeq => {
                     // a0=a0^a1，异或指令
+                    println!("   # 判断a0和a1的相等情况");
                     println!("   xor a0, a0, a1");
                     // a0==a1
                     // a0=a0^a1, sltiu a0, a0, 1
@@ -197,12 +209,14 @@ fn gen_expr(node: Box<Node>) {
                     }
                 }
                 NodeKind::NdLt => {
+                    println!("   # 判断a0<a1");
                     println!("   slt a0, a0, a1");
                     return;
                 }
                 // a0<=a1等价于
                 // a0=a1<a0, a0=a1^1
                 NodeKind::NdLe => {
+                    println!("   # 判断a0<=a1");
                     println!("   slt a0, a1, a0");
                     println!("   xori a0, a0, 1");
                     return;
@@ -254,43 +268,65 @@ fn gen_stmt(node:Box<Node>) {
         // 生成IF语句
         NodeKind::NdIf => {
             let c = count();
+            println!("\n# =====分支语句{}==============", c);
+            // 生成条件内语句
+            println!("\n# Cond表达式{}", c);
             gen_expr(node.cond.unwrap());
             println!("  beqz a0, .L.else.{}", c);
+            // 生成符合条件后的语句
+            println!("\n# Then语句{}", c);
             gen_stmt(node.then.unwrap());
+            // 执行完后跳转到if语句后面的语句
+            println!("  # 跳转到分支{}的.L.end.{}段\n", c, c);
             println!("  j .L.end.{}", c);
+            // else代码块，else可能为空，故输出标签
+            println!("\n# Else语句{}", c);
+            println!("# 分支{}的.L.else.{}段标签\n", c, c);
             println!(".L.else.{}:", c);
+            // 生成不符合条件后的语句
             if let Some(els) = node.els {
                 gen_stmt(els);
             }
+            // 结束if语句，继续执行后面的语句
+            println!("\n# 分支{}的.L.end.{}段标签", c, c);
             println!(".L.end.{}:", c);
         }
         // 生成for循环语句、while循环语句
         NodeKind::NdFor => {
             // 代码段计数
             let c = count();
+            println!("\n# =====循环语句{}===============", c);
             // 生成初始化语句
             if let Some(init) = node.init {
+                println!("\n# Init语句{}", c);
                 gen_stmt(init);
             }
             // 输出循环头部标签
+            println!("\n# 循环{}的.L.begin.{}段标签", c, c);
             println!(".L.begin.{}:", c);
             // 处理循环条件语句
+            println!("# Cond表达式{}", c);
             if let Some(cond) = &node.cond {
                 // 生成条件循环语句
                 gen_expr(cond.clone());
                 // 判断结果是否为0，为0则跳转到结束部分
+                println!("   # 若a0为0,则跳转到循环{}的.L.end.{}段", c, c);
                 println!("   beqz a0, .L.end.{}", c);
             }
             // 生成循环体语句
+            println!("\n# Then语句{}", c);
             gen_stmt(node.then.unwrap());
             // 处理循环递增语句
             if let Some(inc) = &node.inc {
-            // 生成循环递增语句
-            gen_expr(inc.clone());
+                // 生成循环递增语句
+                println!("\n# Inc语句{}", c);
+                gen_expr(inc.clone());
             }
             // 跳转到循环头部
+            println!("   # 跳转到循环{}的.L.begin.{}段", c, c);
             println!("   j .L.begin.{}", c);
             // 输出循环尾部标签
+            println!("\n# 循环{}的.L.end.{}段标签", c, c);
             println!(".L.end.{}:", c);
             return;
         }
@@ -299,7 +335,9 @@ fn gen_stmt(node:Box<Node>) {
         //     return; 
         // }
         NodeKind::NdReturn  => {
+            println!("# 返回语句");
             gen_expr(node.lhs.unwrap());
+            println!("   # 跳转到.L.return段");
             println!("   j .L.return");
         }
         _ => {
@@ -321,7 +359,8 @@ pub fn codegen(prog: Function) {
     // }
     // Var offset: -8
     // Var offset: -16
-    println!(".globl main");
+    println!("# 定义全局main段");
+    println!("   .globl main");
     println!("main:");
 
     //==============栈布局==============(从这里也可以看到变量的类型并不丰富，每个变量8字节)
@@ -336,12 +375,15 @@ pub fn codegen(prog: Function) {
     
     // Prologue, 前言
     // 将fp压入栈中，保存fp的值
+    println!("   # 将fp压栈,fp属于“被调用者保存”的寄存器,需要恢复原值");
     println!("   addi sp, sp, -8");
     println!("   sd fp, 0(sp)");
     // 将sp写入fp
+    println!("   # 将sp的值写入fp");
     println!("   mv fp, sp");
-    // 26个字母*8字节=208字节，栈腾出208字节的空间
-    // println!("   addi sp, sp, -208");
+    
+    // 偏移量为实际变量所用的栈大小
+    println!("   # sp腾出StackSize大小的栈空间");
     println!("   addi sp, sp, -{}", prog_pros.stack_size);
     // let nd = prog_pros.body.unwrap();
     // let mut n = Some(nd);
@@ -352,16 +394,22 @@ pub fn codegen(prog: Function) {
     //     }
     //     n = node.next.clone();
     // }
+    println!("\n# =====程序主体===============");
     gen_stmt(prog_pros.body.unwrap());
     // Epilogue，后语
     // 输出return标签
+    println!("\n# =====程序结束===============");
+    println!("# return段标签");
     println!(".L.return:");
     // 将fp的值改写回sp
+    println!("   # 将fp的值写回sp");
     println!("   mv sp, fp");
     // 将最早fp保存的值弹栈，恢复fp。
+    println!("   # 将最早fp保存的值弹栈,恢复fp和sp");
     println!("   ld fp, 0(sp)");
     println!("   addi sp, sp, 8");
     // 返回
-    println!("ret");
+    println!("   # 返回a0值给系统调用");
+    println!("   ret");
 }
 
