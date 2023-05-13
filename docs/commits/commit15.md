@@ -31,3 +31,10 @@ AST的Nodekind增加了IF类节点：NdIf。同时Node结构体增加 cond(条�
 这部分没有遇到太大的困难。唯一的困难是parser部分在stmt部分增加if语句的节点构建时，对pos的理解不深刻，导致pos多增加了1位，以至于无法正常解析if代码块，删去 `*pos+=1;`就正常了。
 
 ![1](pics/commit15-pic/result1.png)
+
+
+## 4. 一个修正
+
+后来发现csrc/commit15/的tokenize中并没有增加关键词表（只有return是关键词），但是能够正确运行，说明原程序将if else都作为变量来处理了......
+
+还是增加了isKeywords的处理。修改一下。
