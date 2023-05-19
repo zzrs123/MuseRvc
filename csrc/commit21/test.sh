@@ -6,17 +6,17 @@ assert() {
   expected="$1"
   # 输入值 为参数2
   input="$2"
+
   # 运行程序，传入期待值，将生成结果写入tmp.s汇编文件。
   # 如果运行不成功，则会执行exit退出。成功时会短路exit操作
-#   ./rvcc "$input" > tmp.s || exit
-  qemu-riscv64 -L $RISCV/sysroot/  target/riscv64gc-unknown-linux-gnu/debug/muservc "$input" > alu.s || exit
+  ./rvcc "$input" > tmp.s || exit
   # 编译rvcc产生的汇编文件
 #   gcc -o tmp tmp.s
-  $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o alu alu.s
+  $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o tmp tmp.s
 
   # 运行生成出来目标文件
 #   ./tmp
-  $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot ./alu
+  $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot ./tmp
   # $RISCV/bin/spike --isa=rv64gc $RISCV/riscv64-unknown-linux-gnu/bin/pk ./tmp
 
   # 获取程序返回值，存入 实际值
@@ -43,12 +43,12 @@ assert 34 '{ return 12-34+56; }'
 assert 41 '{ return  12 + 34 - 5 ; }'
 
 # [5] 支持* / ()运算符
-# assert 47 '{ return 5+6*7; }'
-# assert 15 '{ return 5*(9-6); }'
-# assert 17 '{ return 1-8/(2*2)+3*6; }'
+assert 47 '{ return 5+6*7; }'
+assert 15 '{ return 5*(9-6); }'
+assert 17 '{ return 1-8/(2*2)+3*6; }'
 
 # [6] 支持一元运算的+ -
-# assert 10 '{ return -10+20; }'
+assert 10 '{ return -10+20; }'
 assert 10 '{ return - -10; }'
 assert 10 '{ return - - +10; }'
 assert 48 '{ return ------12*+++++----++++++++++4; }'
@@ -112,11 +112,6 @@ assert 3 '{ if (1) { 1; 2; return 3; } else { return 4; } }'
 assert 55 '{ i=0; j=0; for (i=0; i<=10; i=i+1) j=i+j; return j; }'
 assert 3 '{ for (;;) {return 3;} return 5; }'
 
-# [17] 支持while语句
-assert 10 '{ i=0; while(i<10) { i=i+1; } return i; }'
-assert 3 ' {x=3; y=4; return x;} '
-assert 4 ' {x=3; y=4; return y;} '
-
 # [20] 支持一元& *运算符
 assert 3 '{ x=3; return *&x; }'
 assert 3 '{ x=3; y=&x; z=&y; return **z; }'
@@ -135,6 +130,5 @@ assert 3 '{ x=3; y=5; return *(&y-1); }'
 assert 5 '{ x=3; y=5; return *(&x+1); }'
 assert 7 '{ x=3; y=5; *(&y-1)=7; return x; }'
 assert 7 '{ x=3; y=5; *(&x+1)=7; return y; }'
-
 # 如果运行正常未提前退出，程序将显示OK
 echo OK

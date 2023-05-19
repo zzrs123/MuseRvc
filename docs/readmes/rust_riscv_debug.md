@@ -6,6 +6,10 @@
 
 今天，2023/04/23 终于搞定了。
 
+>  参考资料：
+>
+> - [blog1:VSCode 调试 RISC-V 程序](http://lifeislife.cn/2021/08/23/VSCode%E8%B0%83%E8%AF%95%E7%A8%8B%E5%BA%8F/)
+
 ## 1. riscv64-toolchains
 
 安装这个交叉环境工具链，自己已经搞过了，具体见 `rust_riscv_tools.md`。
@@ -96,8 +100,6 @@
     ]
 }
 ```
-
-
 
 ## 5. 开始调试
 
