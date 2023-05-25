@@ -155,8 +155,7 @@ fn declaration(tokens: &Vec<Token>, pos: &mut usize, func: &mut Function) -> Res
     // 对变量声明次数计数
     let mut i = 0;
 
-    // (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? 
-    // 意思是可能出现多种变量声明情况
+    // (declarator ("=" expr)? ("," declarator ("=" expr)?)*)?
     while !equal(&tokens[*pos], ";") {
         // 第一个变量不必匹配 ","
         if i > 0 {
