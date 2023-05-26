@@ -1,4 +1,6 @@
 use crate::{ast::*, lexer::Token};
+use crate::error::verror_at;   
+use crate::error;
 /*======================================================================
                             Type 类型推理系统
                     后续可能会成为一个类型推理、检测系统
@@ -65,19 +67,19 @@ impl Type{
                 n.rhs = Some(Type::add_type(rhs));
             }
             if let Some(cond) = n.cond.clone().as_mut() {
-                Type::add_type(cond);
+                n.cond = Some(Type::add_type(cond));
             }
             if let Some(then) = n.then.clone().as_mut() {
-                Type::add_type(then);
+                n.then = Some(Type::add_type(then));
             }
             if let Some(els) = n.els.clone().as_mut() {
-                Type::add_type(els);
+                n.els = Some(Type::add_type(els));
             }
             if let Some(init) = n.init.clone().as_mut() {
-                Type::add_type(init);
+                n.init = Some(Type::add_type(init));
             }
             if let Some(inc) = n.inc.clone().as_mut() {
-                Type::add_type(inc);
+                n.inc = Some(Type::add_type(inc));
             }
             // 访问链表内的所有节点以增加类型
             let mut body = n.body.clone();
@@ -95,13 +97,18 @@ impl Type{
                     n.clone()
                 }
                 // 将节点类型设为 int
-                NodeKind::NdEq | NodeKind::NdNeq | NodeKind::NdLt | NodeKind::NdLe | NodeKind::NdVar |
+                NodeKind::NdEq | NodeKind::NdNeq | NodeKind::NdLt | NodeKind::NdLe |
                 NodeKind::NdNum => {
                     n.ty = Some(Type {
                         kind: TypeKind::Int,
                         base: None,
                         name: None,
                     });
+                    n.clone()
+                }
+                NodeKind::NdVar => {
+                    // n.ty = n.clone().var.unwrap().ty;
+                    n.ty = n.var.as_ref().and_then(|var| var.ty.clone());
                     n.clone()
                 }
                 // 将节点类型设为 指针，并指向左部的类型
@@ -120,13 +127,14 @@ impl Type{
                     if let Some(lhs_ty) = n.lhs.as_ref().and_then(|lhs| lhs.ty.as_ref()) {
                         n.ty = Some(if lhs_ty.kind == TypeKind::Ptr {
                             *lhs_ty.base.as_ref().unwrap().clone()
-                        } 
-                    else {
-                            Type {
-                                kind: TypeKind::Int,
-                                base: None,
-                                name: None,
-                            }
+                        } else {
+                            // Type {
+                            //     kind: TypeKind::Int,
+                            //     base: None,
+                            //     name: None,
+                            // }
+                            let loc = n.tokloc;
+                            error!( loc,"invalid pointer dereference {}", "here");
                         });
                     }
                     n.clone()

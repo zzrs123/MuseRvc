@@ -16,12 +16,12 @@ pub struct Obj {
      // is_local: bool 是否为本地变量（step10预留）
  }
 impl Obj {
-    pub fn new(name: String, offset: i32) -> Self {
+    pub fn new(name: String, offset: i32, ty:&Type) -> Self {
         Obj {
             // next: None,
             name,
             offset,
-            ty: None,
+            ty: Some(ty.clone()),
         }
     }
 }
@@ -53,11 +53,12 @@ impl Function {
         None
     }
 
-    pub fn add_local_var(&mut self, name: String) -> Option<Obj> {
+    pub fn add_local_var(&mut self, name: String, ty: &Type) -> Option<Obj> {
         // let index = self.locals.len();
         // let offset = func.stack_size;
-        let obj = Obj::new(name, 0);
+        let obj = Obj::new(name, 0, ty);
         self.locals.push(obj.clone());   
+        
         Some(obj)
     }
      

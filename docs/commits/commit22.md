@@ -27,3 +27,24 @@
 下面是运行结果。
 
 ![1](pics/commit22-pic/result.png)
+
+
+## 3. 05/26: 一处逻辑问题的排除
+
+昨天05/25，虽然通过了test.sh，但是逻辑问题很明显，具体问题与修改如下：
+
+* 主要问题是类型判别系统中，原来有一些偷懒的行为：
+  * 下图图一，Deref 类型时，如果不是指针类型，原先默认为Int，但应该使其报错。
+  * 下图图二，Var类型也不能直接与Num类型做同样的处理，而应该与Node的Var成员的ty保持一致。
+
+![1](pics/commit22-pic/diff2.png)
+
+![3](pics/commit22-pic/diff3.png)
+
+而很明显，还需要把作出其他调整，因为var的ty默认都是None，直接make test会导引到 new_add 和 new_sub 的 None,None 分支，直接导致程序崩溃。一方面在declaration解析函数中，解析到变量进行add_local_var的时候，需要顺便将ty（Type）参数传入，生成一个包含该 ty 的 Obj 类型的变量 var。另一方面是原有的primary函数中add_local_var逻辑就不再需要了，因为变量声明中变量一定都出现过了，后续不用Int声明的变量其实是不合法的。
+
+![t](pics/commit22-pic/diff6.png)
+
+![e](pics/commit22-pic/diff4.png)
+
+![y](pics/commit22-pic/diff5.png)

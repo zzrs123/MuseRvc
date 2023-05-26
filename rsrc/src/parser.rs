@@ -168,7 +168,7 @@ fn declaration(tokens: &Vec<Token>, pos: &mut usize, func: &mut Function) -> Res
         // 声明获取到变量类型，包括变量名
         let ty = declarator(tokens, pos, base_type.clone())?;
         
-        let var = func.add_local_var(get_ident(&ty.clone().name.unwrap()));
+        let var = func.add_local_var(get_ident(&ty.clone().name.unwrap()), &ty);
 
         // 如果不存在 "=" 则为变量声明，不需要生成节点，已经存储在 Locals 中了
         if !equal(&tokens[*pos], "=") {
@@ -617,9 +617,11 @@ fn unary(tokens: &Vec<Token>, pos: &mut usize,func: &mut Function) -> Result<Box
                 let node = Node::new_var(var.clone(), tmp.clone().unwrap());
                 Ok(node)
             } else {
-                let obj = func.add_local_var(var_name);
-                let node = Node::new_var(obj.unwrap().clone(), tmp.clone().unwrap());
-                Ok(node)
+                // let obj = func.add_local_var(var_name);
+                let tok = tmp.unwrap();
+                error!(tok,"undefined variable");
+                // let node = Node::new_var(obj.unwrap().clone(), tmp.clone().unwrap());
+                // Ok(node)
             }
         
         }
