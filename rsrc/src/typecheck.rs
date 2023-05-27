@@ -97,8 +97,8 @@ impl Type{
                     n.clone()
                 }
                 // 将节点类型设为 int
-                NodeKind::NdEq | NodeKind::NdNeq | NodeKind::NdLt | NodeKind::NdLe |
-                NodeKind::NdNum => {
+                NodeKind::NdEq | NodeKind::NdNeq | NodeKind::NdLt | NodeKind::NdLe |NodeKind::NdNum |
+                NodeKind::NdFuncall => {
                     n.ty = Some(Type {
                         kind: TypeKind::Int,
                         base: None,

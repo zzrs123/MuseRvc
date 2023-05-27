@@ -256,7 +256,8 @@ fn stmt(tokens: &Vec<Token>, pos: &mut usize, func: &mut Function) -> Result<Box
             *pos += 1;
             if equal(&tmp.clone(),"return"){
                 let expr_node = expr(tokens, pos, func)?;
-                if !equal(&tokens[*pos], ";") {
+                let tok = &tokens[*pos].clone();
+                if !equal(tok, ";") {
                     error!(tmp,"Expected ';' after return expression");
                 }
                 *pos += 1;
@@ -578,12 +579,13 @@ fn unary(tokens: &Vec<Token>, pos: &mut usize,func: &mut Function) -> Result<Box
 
 /*====================================================================
                         primary - 解析括号、数字、变量
-                    primary = "(" expr ")" | ident｜ num:
+                primary = "(" expr ")" | ident args? | num
+                         args = "(" ")", step22预留
  ====================================================================*/
  fn primary(tokens: &Vec<Token>, pos: &mut usize, func:&mut Function) -> Result<Box<Node>, String> {
-    // "(" expr ")"
     let tmp = tokens.get(*pos);
     match tmp {
+        // "(" expr ")" 
         tmp if equal(tmp.unwrap(), "(") => {
             *pos += 1;
             let node = expr(tokens, pos, func)?;
@@ -594,6 +596,7 @@ fn unary(tokens: &Vec<Token>, pos: &mut usize,func: &mut Function) -> Result<Box
                 error!("Missing closing paren: ')'")
             }
         }
+        // 数字
         tmp if tmp.unwrap().kind == TokenKind::TkNum =>{
             *pos += 1;
             let mut nnn = 0;
@@ -603,14 +606,32 @@ fn unary(tokens: &Vec<Token>, pos: &mut usize,func: &mut Function) -> Result<Box
             let node = Node::new_num(nnn, tmp.clone().unwrap());
             Ok(node)
         }
+        // step22中，从ident->ident args?
         tmp if tmp.unwrap().kind == TokenKind::TkIdent => {
             *pos += 1;
+            // 此时是左括号（如果是函数调用的话）
+            let tok = tokens[*pos].clone();
+            // *pos += 1;
+            // if equal(&tok, "("){
+            //     println!("here");
+            // }
+            // let toknext = tokens[*pos+1].clone();
+            if equal(&tok, "("){
+                let mut node = Node::new_node(NodeKind::NdFuncall);
+                if let Some(V::Str(st))= &tmp.clone().unwrap().value{
+                    node.funcname = st.to_string();
+                }
+                *pos+=2; //这里是跳过 ')'
+                return Ok(node);
+            }
             let var_name;
             if let Some(V::Str(s)) = &tmp.unwrap().value {
                 var_name = s.to_string();
             } else {
                 return Err("expect variable name".to_string());
             }
+            // ident
+            // 查找变量
             if let Some(var) = func.find_local_var(&var_name) {
                 // 如果 locals 中已经存在该变量，则创建一个 NdLocalVar 节点，并返回
                 // let offset = func.locals[index].offset;
@@ -632,3 +653,4 @@ fn unary(tokens: &Vec<Token>, pos: &mut usize,func: &mut Function) -> Result<Box
         }
     }
 }
+

@@ -184,7 +184,14 @@ fn gen_expr(node: Box<Node>) {
             pop("a1");
             println!("   # 将a0的值,写入到a1中存放的地址");
             println!("   sd a0, 0(a1)");
+        
         }
+        NodeKind::NdFuncall => {
+            println!("\n  # 调用函数{}", node.funcname);
+            println!("  call {}", node.funcname);
+            return;
+        }
+       
         _ => {
             // 递归到最右节点
             gen_expr(node.rhs.unwrap());
@@ -393,18 +400,24 @@ pub fn codegen(prog: Function) {
 
     //==============栈布局==============(从这里也可以看到变量的类型并不丰富，每个变量8字节)
     //-------------------------------// sp
+    //              ra
+    //-------------------------------// ra = sp-8
     //              fp
-    //-------------------------------// fp = sp-8
+    //-------------------------------// fp = sp-16
     //             变量
-    //-------------------------------// sp = sp-8-StackSize
+    //-------------------------------// sp = sp-16-StackSize
     //           表达式计算
     //-------------------------------//
     //==============栈布局==============
     
     // Prologue, 前言
-    // 将fp压入栈中，保存fp的值
+    // 将ra寄存器压栈,保存ra的值
+    println!("  # 将ra寄存器压栈,保存ra的值");
+    println!("  addi sp, sp, -16");
+    println!("  sd ra, 8(sp)");
+    // 再将fp压入栈中，保存fp的值
     println!("   # 将fp压栈,fp属于“被调用者保存”的寄存器,需要恢复原值");
-    println!("   addi sp, sp, -8");
+    // println!("   addi sp, sp, -8");
     println!("   sd fp, 0(sp)");
     // 将sp写入fp
     println!("   # 将sp的值写入fp");
@@ -435,7 +448,10 @@ pub fn codegen(prog: Function) {
     // 将最早fp保存的值弹栈，恢复fp。
     println!("   # 将最早fp保存的值弹栈,恢复fp和sp");
     println!("   ld fp, 0(sp)");
-    println!("   addi sp, sp, 8");
+    // 将ra寄存器弹栈,恢复ra的值
+    println!("  # 将ra寄存器弹栈,恢复ra的值\n");
+    println!("  ld ra, 8(sp)");
+    println!("  addi sp, sp, 16");
     // 返回
     println!("   # 返回a0值给系统调用");
     println!("   ret");

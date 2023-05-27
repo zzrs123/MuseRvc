@@ -106,8 +106,9 @@ pub enum NodeKind {
      NdReturn,    // 返回
      NdIf,        // "if"，条件判断
      NdFor,       // "for" 或 "while"，循环
-     NdEmpty,     //空语句
+     NdEmpty,     // 空语句
      NdBlock,     // { ... }，代码块
+     NdFuncall,   // 函数调用
      NdExprStmt,  // 表达式
      NdVar,       // 变量
  }
@@ -133,7 +134,10 @@ pub struct Node {
     pub val: Option<i32>, // 存储ND_NUM种类的值，不需要存储操作符（类型判断）
     pub name: Option<String>, // 存储ND_VAR的字符串
     pub var: Option<Obj>,    // 存储ND_VAR种类的变量
- }
+
+    pub funcname: String,   // 函数名
+    
+}
  impl Node {
      pub fn new_node(kind: NodeKind) -> Box<Node> {
          Box::new(Node {
@@ -152,6 +156,7 @@ pub struct Node {
             els: None,
             init: None,
             inc:  None,
+            funcname: "".to_owned(),
         })
      }
 
