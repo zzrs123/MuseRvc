@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 将下列代码编译为tmp2.o，"-xc"强制以c语言进行编译
-# cat <<EOF | gcc -xc -c -o tmp2.o -
-cat <<EOF | $RISCV/bin/riscv64-unknown-linux-gnu-gcc -xc -c -o tmp2.o -
+# cat <<EOF | $RISCV/bin/riscv64-unknown-linux-gnu-gcc -xc -c -o tmp2.o -
+cat <<EOF | gcc -xc -c -o tmp2.o -
 int ret3() { return 3; }
 int ret5() { return 5; }
 int add(int x, int y) { return x+y; }
@@ -18,17 +18,17 @@ assert() {
   expected="$1"
   # 输入值 为参数2
   input="$2"
+
   # 运行程序，传入期待值，将生成结果写入tmp.s汇编文件。
   # 如果运行不成功，则会执行exit退出。成功时会短路exit操作
-#   ./rvcc "$input" > tmp.s || exit
-  qemu-riscv64 -L $RISCV/sysroot/  target/riscv64gc-unknown-linux-gnu/debug/muservc "$input" > alu.s || exit
+  ./rvcc "$input" > tmp.s || exit
   # 编译rvcc产生的汇编文件
-#   gcc -o tmp tmp.s
-  $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o alu alu.s tmp2.o
+  gcc -static -o tmp tmp.s tmp2.o
+  # $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o tmp tmp.s tmp2.o
 
   # 运行生成出来目标文件
-#   ./tmp
-  $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot ./alu
+  ./tmp
+  # $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot ./tmp
   # $RISCV/bin/spike --isa=rv64gc $RISCV/riscv64-unknown-linux-gnu/bin/pk ./tmp
 
   # 获取程序返回值，存入 实际值
