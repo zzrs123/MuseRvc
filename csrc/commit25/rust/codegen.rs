@@ -4,14 +4,18 @@
 use crate::ast::*;
 use crate::error;
 use crate::error::verror_at;
-/*====================================================================
-                         栈管理函数
- ====================================================================*/
+
 
 // 记录栈深度 -- 后期可以考虑改成结构体成员
 static mut DEPTH: i32 = 0;
+// 记录函数调用使用的寄存器
 static mut ARG_REG_LIST: Vec<&str> = vec![];
+// 记录当前函数名
 static mut CURRENT_FUNC : Option<String> = None;
+
+/*====================================================================
+                         栈管理函数
+ ====================================================================*/
 // 压栈，将结果临时压入栈中备用
 // sp为栈指针，栈反向向下增长，64位下，8个字节为一个单位，所以sp-8
 // 当前栈指针的地址就是sp，将a0的值压入栈
@@ -111,7 +115,6 @@ fn assign_lvar_offsets(mut prog: Function) -> Function {
 
     prog
 }
-
 
 /*======================================================================
                     gen_addr: 计算给定节点的绝对地址
@@ -289,14 +292,11 @@ fn count() -> i32 {
     }
     count
 }
-
- 
     
 /*======================================================================
                         gen_stmt: 生成语句
                     处理文法分析的语句节点，处理语句逻辑
 ====================================================================== */
-
 fn gen_stmt(node:Box<Node>) {
 
     // 单独拿出来是为了提高效率（maybe）
@@ -389,8 +389,6 @@ fn gen_stmt(node:Box<Node>) {
                 println!("  j .L.return.{}", CURRENT_FUNC.clone().unwrap());
             }
             
-            // println!("   # 跳转到.L.return段");
-            // println!("   j .L.return");
         }
          // 更新错误消息系统，还有待继续完善
         _ => {
@@ -401,6 +399,9 @@ fn gen_stmt(node:Box<Node>) {
     
 }
 
+/*======================================================================
+                        init_regs: 设置寄存器
+====================================================================== */
 pub fn init_regs(){
     unsafe { 
         ARG_REG_LIST.push("a0");
@@ -412,13 +413,15 @@ pub fn init_regs(){
     };
     
 }
+
 /*======================================================================
                         codegen: 代码生成入口函数
                             包含代码块的基础信息
 ====================================================================== */
 pub fn codegen(mut prog: Program) {
+
     init_regs();
-    // let mut funcs_cur = 0;
+    
     for func in prog.funclist.iter_mut(){
         let prog_pros = assign_lvar_offsets(func.clone());
         unsafe { CURRENT_FUNC = Some(prog_pros.name.clone()) };
@@ -440,6 +443,7 @@ pub fn codegen(mut prog: Program) {
         //           表达式计算
         //-------------------------------//
         //==============栈布局==============
+
          // Prologue, 前言
         // 将ra寄存器压栈,保存ra的值
         println!("  # 将ra寄存器压栈,保存ra的值");
@@ -478,45 +482,8 @@ pub fn codegen(mut prog: Program) {
         // 返回
         println!("  # 返回a0值给系统调用");
         println!("  ret");
-
-
-
-        // println!("\n# =====程序结束===============");
-        // println!("# return段标签");
-        // println!(".L.return:");
-        // // 将fp的值改写回sp
-        // println!("   # 将fp的值写回sp");
-        // println!("   mv sp, fp");
-        // // 将最早fp保存的值弹栈，恢复fp。
-        // println!("   # 将最早fp保存的值弹栈,恢复fp和sp");
-        // println!("   ld fp, 0(sp)");
-        // // 将ra寄存器弹栈,恢复ra的值
-        // println!("  # 将ra寄存器弹栈,恢复ra的值\n");
-        // println!("  ld ra, 8(sp)");
-        // println!("  addi sp, sp, 16");
-        // // 返回
-        // println!("   # 返回a0值给系统调用");
-        // println!("   ret");
+        
     }
-    
-    
-    // Var offset: -8
-    // Var offset: -16
-    
-
-    
-    
-   
-    // let nd = prog_pros.body.unwrap();
-    // let mut n = Some(nd);
-    // while let Some(node) = n {
-    //     gen_stmt(node.clone());
-    //     unsafe {
-    //         assert_eq!(DEPTH, 0);
-    //     }
-    //     n = node.next.clone();
-    // }
-   
     
 }
 

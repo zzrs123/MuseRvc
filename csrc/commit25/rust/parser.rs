@@ -107,8 +107,11 @@ pub fn get_ident(token: &Token) -> String {
     // 最后输出一个函数列表
     Ok(prog)
 }
-// functionDefinition = 
-//            declspec declarator "{" compoundStmt*
+
+/*====================================================================
+                        function - 解析函数
+        functionDefinition = declspec declarator "{" compoundStmt*
+ ====================================================================*/
 pub fn function(tokens: &Vec<Token>, mut pos: &mut usize) -> Result<Function, String>{
     let mut ty = declspec(tokens, pos)?;
     let base_ty = ty.clone();
@@ -238,7 +241,11 @@ fn declspec(tokens: &Vec<Token>, pos: &mut usize) -> Result<Type, String> {
     let ty = Type::new(TypeKind::Int);
     Ok(ty)
 }
-// typeSuffix = ("(" ")")?
+
+/*===================================================================
+                    type_suffix - 跳过函数声明后的()
+                        typeSuffix = ("(" ")")?
+ ====================================================================*/
 fn type_suffix(tokens: &Vec<Token>, pos: &mut usize, ty: Type) -> Result<Type, String> {
     if equal(&tokens[*pos], "("){
         *pos += 1;
@@ -254,6 +261,7 @@ fn type_suffix(tokens: &Vec<Token>, pos: &mut usize, ty: Type) -> Result<Type, S
     }
     Ok(ty)
 }
+
 /*===================================================================
                         declarator - 声明变量的处理
                         declarator = "*"* ident

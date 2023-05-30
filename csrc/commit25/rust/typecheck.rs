@@ -58,7 +58,7 @@ impl Type{
     pub fn is_pointer(ty: &Type) -> bool{
         matches!(ty.kind, TypeKind::Ptr)
     }
-
+    // 给函数类型赋类型
     pub fn func_type(returnty: Type) -> Type{
         Self { kind: TypeKind::Func, base: None, name: None, returnty :Some(Box::new(returnty)), }
     }
